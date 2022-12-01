@@ -20,10 +20,13 @@ Feature: Chart verification
             | type      | location                          | helm_chart              | report_info                     |
             | partner   | tests/charts/psql-service/0.1.8/  | src                     | partner-report-info.json   |
             | partner   | tests/charts/psql-service/0.1.9/  | psql-service-0.1.9.tgz  | partner-report-info.json   |
+            | partner   | tests/charts/psql-service/0.1.12/ | psql-service-0.1.12.tgz | partner-report-info.json   |
             | redhat    | tests/charts/psql-service/0.1.8/  | src                     | redhat-report-info.json    |
             | redhat    | tests/charts/psql-service/0.1.9/  | psql-service-0.1.9.tgz  | redhat-report-info.json    |
+            | redhat    | tests/charts/psql-service/0.1.12/ | psql-service-0.1.12.tgz | redhat-report-info.json    |
             | community | tests/charts/psql-service/0.1.8/  | src                     | community-report-info.json |
             | community | tests/charts/psql-service/0.1.9/  | psql-service-0.1.9.tgz  | community-report-info.json |
+            | community | tests/charts/psql-service/0.1.12/ | psql-service-0.1.12.tgz | community-report-info.json |
 
     Scenario Outline: A chart provider verifies their signed chart using the chart verifier
         Given I would like to use the <type> profile

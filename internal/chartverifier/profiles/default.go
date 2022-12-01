@@ -10,7 +10,7 @@ const (
 	CheckVersion10        = "v1.0"
 	CheckVersion11        = "v1.1"
 	DefaultProfile        = "partner"
-	DefaultProfileVersion = "v1.2"
+	DefaultProfileVersion = "v1.3"
 )
 
 func getDefaultProfile(msg string) *Profile {
@@ -39,7 +39,7 @@ func getDefaultProfile(msg string) *Profile {
 		{Name: fmt.Sprintf("%s/%s", CheckVersion10, apiChecks.NotContainsCRDs), Type: apiChecks.MandatoryCheckType},
 		{Name: fmt.Sprintf("%s/%s", CheckVersion10, apiChecks.HelmLint), Type: apiChecks.MandatoryCheckType},
 		{Name: fmt.Sprintf("%s/%s", CheckVersion10, apiChecks.NotContainCsiObjects), Type: apiChecks.MandatoryCheckType},
-		{Name: fmt.Sprintf("%s/%s", CheckVersion10, apiChecks.ImagesAreCertified), Type: apiChecks.MandatoryCheckType},
+		{Name: fmt.Sprintf("%s/%s", CheckVersion11, apiChecks.ImagesAreCertified), Type: apiChecks.MandatoryCheckType},
 		{Name: fmt.Sprintf("%s/%s", CheckVersion10, apiChecks.ChartTesting), Type: apiChecks.MandatoryCheckType},
 		{Name: fmt.Sprintf("%s/%s", CheckVersion10, apiChecks.RequiredAnnotationsPresent), Type: apiChecks.MandatoryCheckType},
 		{Name: fmt.Sprintf("%s/%s", CheckVersion10, apiChecks.SignatureIsValid), Type: apiChecks.MandatoryCheckType},

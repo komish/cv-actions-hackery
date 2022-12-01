@@ -126,7 +126,7 @@ func TestProfileFilter(t *testing.T) {
 	defaultRegistry.Add(apiChecks.NotContainsCRDs, checkVersion11, checks.NotContainCRDs)
 	defaultRegistry.Add(apiChecks.HelmLint, checkVersion11, checks.HelmLint)
 	defaultRegistry.Add(apiChecks.NotContainsCRDs, checkVersion11, checks.NotContainCSIObjects)
-	defaultRegistry.Add(apiChecks.ImagesAreCertified, checkVersion11, checks.ImagesAreCertified)
+	defaultRegistry.Add(apiChecks.ImagesAreCertified, checkVersion11, checks.ImagesAreCertified_V1_1)
 	defaultRegistry.Add(apiChecks.ChartTesting, checkVersion11, checks.ChartTesting)
 
 	defaultRegistry.Add("BadHasReadme", checkVersion10, checks.HasReadme)

@@ -374,12 +374,16 @@ func TestImageCertify(t *testing.T) {
 		uri         string
 		numErrors   int
 		numPasses   int
+		numSkips    int
 	}
 
 	testCases := []testCase{
-		{description: "chart-0.1.0-v3.valid.tgz check images passes", uri: "chart-0.1.0-v3.valid.tgz", numErrors: 0, numPasses: 5},
-		{description: "Helm check images fails", uri: "chart-0.1.0-v3.with-crd.tgz", numErrors: 2, numPasses: 0},
-		{description: "Helm check images fails", uri: "chart-0.1.0-v3.with-csi.tgz", numErrors: 1, numPasses: 0},
+		{description: "chart-0.1.0-v3.valid.tgz check images passes", uri: "chart-0.1.0-v3.valid.tgz", numErrors: 0, numPasses: 5, numSkips: 0},
+		{description: "chart-0.1.0-v3.valid-skipped-images.tgz check images passes", uri: "chart-0.1.0-v3.valid-skipped-images.tgz", numErrors: 0, numPasses: 3, numSkips: 2},
+		{description: "chart-0.1.0-v3.failed-skipped-images.tgz check images passes", uri: "chart-0.1.0-v3.failed-skipped-images.tgz", numErrors: 1, numPasses: 0, numSkips: 4},
+		{description: "chart-0.1.0-v3.skipped-images.tgz check images passes", uri: "chart-0.1.0-v3.skipped-images.tgz", numErrors: 0, numPasses: 0, numSkips: 5},
+		{description: "Helm check images fails", uri: "chart-0.1.0-v3.with-crd.tgz", numErrors: 2, numPasses: 0, numSkips: 0},
+		{description: "Helm check images fails", uri: "chart-0.1.0-v3.with-csi.tgz", numErrors: 1, numPasses: 0, numSkips: 0},
 	}
 
 	for _, tc := range testCases {
@@ -404,6 +408,13 @@ func TestImageCertify(t *testing.T) {
 					r.Reason = strings.Replace(r.Reason, ImageCertified, "_replaced_", 1)
 				}
 				require.False(t, strings.Contains(r.Reason, ImageCertified))
+			}
+			if tc.numSkips > 0 {
+				for i := 0; i < tc.numSkips; i++ {
+					require.Contains(t, r.Reason, ImageCertifySkipped)
+					r.Reason = strings.Replace(r.Reason, ImageCertifySkipped, "_replaced_", 1)
+				}
+				require.False(t, strings.Contains(r.Reason, ImageCertifySkipped))
 			}
 		})
 	}

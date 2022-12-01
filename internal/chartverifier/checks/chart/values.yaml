@@ -8,7 +8,7 @@ image:
     name: postgresql-10-rhel7
     repository: "registry.access.redhat.com/rhscl/"
     pullPolicy: IfNotPresent
-    tag: "1-66"
+    tag: "latest"
 
 imagePullSecrets: []
 nameOverride: ""
