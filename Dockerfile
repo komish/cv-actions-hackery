@@ -8,8 +8,9 @@
 #
 # To upgrade Go, then a new image should be pushed to Quay and updated below.
 #
+ARG quay_expiration=never
 FROM quay.io/redhat-certification/golang:1.17.2 as build
-
+ARG quay_expiration
 WORKDIR /tmp/src
 
 COPY go.mod .
@@ -22,7 +23,8 @@ COPY . .
 RUN go build -o ./out/chart-verifier main.go
 
 FROM registry.access.redhat.com/ubi8/ubi-minimal
-
+ARG quay_expiration
+LABEL quay.expires-after=${quay_expiration}
 COPY --from=build /tmp/src/out/chart-verifier /app/chart-verifier
 
 WORKDIR /app
