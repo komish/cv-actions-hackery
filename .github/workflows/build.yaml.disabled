@@ -3,13 +3,12 @@ name: Build, Test and Release
 on:
     pull_request_target:
         types: [opened, synchronize, reopened]
-        branches: [ main ]
+        branches: [ main, ghactions ]
 
 jobs:
     build:
-        name: Build artifacts
+        name: Build Binary
         runs-on: ubuntu-20.04
-
         steps:
             - name: Checkout code
               uses: actions/checkout@v2
@@ -26,53 +25,51 @@ jobs:
               with:
                 go-version: '>=1.17.0'
                 
-            - name: Check go mod status
+            - name: Ensure go.mod is updated.
               working-directory: ./chart-verifier
               run: |
-                # run `make gomod_tidy`
-                make gomod_tidy
+                go mod tidy
+                git diff --exit-code
+
+            - name: Ensure code formatting
+              working-directory: ./chart-verifier
+              run: |
+                go fmt
+                git diff --exit-code
+
+            - name: Run tests
+              working-directory: ./chart-verifier
+              run: |
+                # Run go tests
+                make test
                 if [[ ! -z $(git status -s) ]]
                 then
-                    echo "Go mod - state is not clean:"
-                    git status -s
-                    git diff "$GITHUB_SHA"
-                    exit 1
+                  echo "go test - errors running go tests : $(git status -s)"
+                  exit 1
                 fi
 
             - name: Build Binary
               working-directory: ./chart-verifier
               run: make bin
 
-            - name: Check format
-              working-directory: ./chart-verifier
-              run: |
-                # run `make gofmt`
-                make gofmt
-                if [[ ! -z $(git status -s) ]]
-                then
-                    echo "go fmt - found badly formatted source : $(git status -s)"
-                    exit 1
-                fi
-
-            - name: Download dependencies
-              working-directory: ./chart-verifier
-              run: go mod download
-
-            - name: Run tests
-              working-directory: ./chart-verifier
-              run: |
-                  # Run go tests
-                  make test
-                  if [[ ! -z $(git status -s) ]]
-                  then
-                    echo "go test - errors running go tests : $(git status -s)"
-                    exit 1
-                  fi
-
             - name: Set up Python 3.x
               uses: actions/setup-python@v2
               with:
                 python-version: '3.9'
+    integration:
+        name: Run Integration Tests
+        runs-on: ubuntu-20.04
+        needs: build
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v2
+
+            - name: Checkout
+              uses: actions/checkout@v2
+              with:
+                ref: ${{ github.event.pull_request.head.ref }}
+                repository: ${{ github.event.pull_request.head.repo.full_name }}
+                path: "chart-verifier"
 
             - name: Set up Python scripts on PR branch
               working-directory: ./chart-verifier
@@ -117,7 +114,6 @@ jobs:
                   commit_sha=$(git rev-parse --short HEAD)
                   ve1/bin/build-and-test --image-name="quay.io/redhat-certification/chart-verifier" --sha-value=$commit_sha --build-only="True"}
 
-
             - name: Build podman Image
               working-directory: ./chart-verifier
               id: build_podman_image
@@ -136,7 +132,6 @@ jobs:
               run: |
                 # check if release file only is included in PR
                 ve1/bin/tar-file --release="test"
-
 
             - name: Login to oc
               working-directory: ./chart-verifier
@@ -176,14 +171,41 @@ jobs:
                   API_SERVER=$( echo -n ${{ secrets.API_SERVER }} | base64 -d)
                   ./oc login --token=${{ secrets.CLUSTER_TOKEN }} --server=${API_SERVER}
                   ve1/bin/sa-for-chart-testing --delete charts-${{ github.event.number }}
+    Release:
+        # Project releasing is triggered by a PR updating the Version metadata file.
+        # 
+        # The PR is auto-merged if it comes from a maintainer.
+        # On merge, this workflow will create a GitHub release,
+        # including artifacts, and then wait for Quay to build the image
+        # and link the latest tag.
+        name: Release Assets
+        runs-on: ubuntu-20.04
+        needs: integration
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v2
 
-            - name: Set up Python scripts on main branch
+            - name: Checkout
+              uses: actions/checkout@v2
+              with:
+                ref: ${{ github.event.pull_request.head.ref }}
+                repository: ${{ github.event.pull_request.head.repo.full_name }}
+                path: "chart-verifier"
+
+            - name: Set up Python scripts on PR branch
+              working-directory: ./chart-verifier
               run: |
-                # set up python requirements and scripts on main branch
-                echo $(pwd)
+                # set up python requirements and scripts on PR branch
                 python3 -m venv ve1
                 cd scripts && ../ve1/bin/pip3 install -r requirements.txt && cd ..
                 cd scripts && ../ve1/bin/python3 setup.py install && cd ..
+
+            - name: Check if only release file in PR
+              working-directory: ./chart-verifier
+              id: check_version_in_PR
+              run: |
+                # check if release file only is included in PR
+                ve1/bin/release-checker --api-url=${{ github.event.pull_request._links.self.href }}
 
             - name: Check for restricted files and user permissiom
               id: check_authorization
