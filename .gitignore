@@ -1,3 +1,5 @@
 /.idea/
 /out/
 **/reports/
+bin/
+gosec.sarif

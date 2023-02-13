@@ -5,6 +5,20 @@ on:
     - main
     - ghactions
 jobs:
+    security:
+      name: Go Security
+      runs-on: ubuntu-20.04
+      steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Setup Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: '>=1.17.0'
+      - name: Run Gosec
+        run: |
+          make sec
+        # TODO: More to do here, copy the vulnerability task.
     lint:
       name: Go Lint
       runs-on: ubuntu-20.04
@@ -23,6 +37,9 @@ jobs:
         run: |
           go fmt
           git diff --exit-code
+      - name: Run Linters
+        run: |
+          make lint
     build:
       name: Go Build
       runs-on: ubuntu-20.04
