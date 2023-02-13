@@ -51,11 +51,6 @@ jobs:
             - name: Build Binary
               working-directory: ./chart-verifier
               run: make bin
-
-            - name: Set up Python 3.x
-              uses: actions/setup-python@v2
-              with:
-                python-version: '3.9'
     integration:
         name: Run Integration Tests
         runs-on: ubuntu-20.04
@@ -71,6 +66,10 @@ jobs:
                 repository: ${{ github.event.pull_request.head.repo.full_name }}
                 path: "chart-verifier"
 
+            - name: Set up Python 3.x
+              uses: actions/setup-python@v2
+              with:
+                python-version: '3.9'
             - name: Set up Python scripts on PR branch
               working-directory: ./chart-verifier
               run: |
