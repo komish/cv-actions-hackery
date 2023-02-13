@@ -1,0 +1,57 @@
+name: Golang Code Standards
+on:
+  pull_request:
+    branches:
+    - main
+    - ghactions
+jobs:
+    lint:
+      name: Go Lint
+      runs-on: ubuntu-20.04
+      steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Setup Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: '>=1.17.0'
+      - name: Ensure go.mod is updated.
+        run: |
+          go mod tidy
+          git diff --exit-code
+      - name: Ensure code formatting
+        run: |
+          go fmt
+          git diff --exit-code
+    build:
+      name: Go Build
+      runs-on: ubuntu-20.04
+      steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Setup Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: '>=1.17.0'
+      - name: Build Binary
+        run: make bin
+    test:
+      name: Go Test
+      runs-on: ubuntu-20.04
+      steps:
+        - name: Checkout code
+          uses: actions/checkout@v2
+        - name: Setup Go
+          uses: actions/setup-go@v2
+          with:
+            go-version: '>=1.17.0'
+        - name: Run tests
+          run: |
+            # Run go tests
+            make test
+            if [[ ! -z $(git status -s) ]]
+            then
+              echo "go test - errors running go tests : $(git status -s)"
+              exit 1
+            fi
+
