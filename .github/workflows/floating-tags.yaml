@@ -1,10 +1,7 @@
-name: Manage Container Floating Tags
+name: Floating Tags
 # This workflow 
 on:
-  push: # includes merges
-    branches:
-      - "ghactions"
-  pull_request:
+  push: # Includes when PRs get merged to the branches.
     branches:
       - "ghactions"
 env:
@@ -13,7 +10,7 @@ env:
   DATA_DIR: ./containertags
 jobs:
   move-floating-tag:
-    name: Confirm Digest Exists
+    name: Link Floating Tags to Digests
     runs-on: ubuntu-latest
     outputs:
       target_digest: ${{ steps.retrieve-digest.outputs.digest }}
@@ -38,10 +35,12 @@ jobs:
         username: ${{ secrets.REGISTRY_USER }}
         password: ${{ secrets.REGISTRY_PASSWORD }}
         registry: ${{ secrets.IMAGE_REGISTRY }}
-    - name: Move Tag
-      if: ${{ github.event.push }}
+    - name: Move Tag # TODO: Only do this if we don't already have the floating tag linked.
+      if: github.event.push
       id: move-floating-tag
       run: |
         imageReference=${{ secrets.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}
         skopeo copy --preserve-digests docker://${imageReference}@${{ steps.retrieve-digest.outputs.digest }} docker://${imageReference}@${{ env.TARGET_TAG }}
-  
+    ## TODO: Create an issue if the tag move fails asking a human to resolve. 
+    ## Aside from intermittence, the other reason a move can fail is the digest
+    ## disappears before the tag is linked.
