@@ -1,0 +1,88 @@
+name: Integration Tests
+# This workflow runs integration tests on all pull requests
+# to the specified branches.
+on:
+  pull_request:
+    branches:
+    - main
+    - ghactions
+jobs:
+  integration:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    - name: Set up Python 3.x
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.9'
+    - name: Set up Python scripts on PR branch
+      run: |
+        # set up python requirements and scripts on PR branch
+        python3 -m venv ve1
+        cd scripts && ../ve1/bin/pip3 install -r requirements.txt && cd ..
+        cd scripts && ../ve1/bin/python3 setup.py install && cd ..
+    - name: Install Latest OpenShift Client
+      id: install-oc
+      uses: redhat-actions/openshift-tools-installer@v1
+      with:
+        source: "mirror"
+        oc: "latest"
+    - name: Log OC version
+      run: |
+        oc version
+    - name: Build image using Docker
+      id: build_image
+      run: |
+          # build a docker image
+          commit_sha=$(git rev-parse --short HEAD)
+          ve1/bin/build-and-test --image-name="quay.io/redhat-certification/chart-verifier" --sha-value=$commit_sha --build-only="True"}
+    - name: Build image using Podman
+      id: build_podman_image
+      run: |
+          # build a podman image
+          # sudo apt install qemu-system-x86
+          commit_sha=$(git rev-parse --short HEAD)
+          image_tag="podman-"$commit_sha
+          echo "use image tag $image_tag"
+          podman build -t quay.io/redhat-certification/chart-verifier:$image_tag .
+          echo "podman_image_tag=$image_tag" >> $GITHUB_OUTPUT
+    - name: Create tarfile
+      id: create-tarfile
+      run: |
+        # check if release file only is included in PR
+        ve1/bin/tar-file --release="test"
+    - name: Install Helm
+      run: |
+        curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
+    - name: Authenticate to OpenShift
+      uses: redhat-actions/oc-login@v1
+      env:
+        KUBECONFIG: /tmp/ci-kubeconfig
+      with:
+        openshift_server_url: ${{ secrets.OPENSHIFT_APISERVER }}
+        openshift_username: ${{ secrets.OPENSHIFT_USER }}
+        openshift_password: ${{ secrets.OPENSHIFT_PASSWORD }}
+        insecure_skip_tls_verify: true
+    - name: Create Service Account for CI testing
+      env:
+          KUBECONFIG: /tmp/ci-kubeconfig
+      run: |
+        ve1/bin/sa-for-chart-testing --create charts-${{ github.event.number }} --token token.txt --server ${{ secrets.OPENSHIFT_APISERVER }}
+    - name: Run Integration Tests
+      env:
+          KUBECONFIG: /tmp/ci-kubeconfig
+          VERIFIER_IMAGE_TAG:  ${{ steps.build_image.outputs.verifier-image-tag }}
+          VERIFIER_TARBALL_NAME : ${{ steps.create-tarfile.outputs.tarball_full_name }}
+          PODMAN_IMAGE_TAG : ${{ steps.build_podman_image.outputs.podman_image_tag }}
+      id: run_test
+      run: |
+        ve1/bin/pytest -v --log-cli-level=WARNING --tb=short
+    - name: Clean Up Cluster
+      if: ${{ always() && steps.install-oc.conclusion == 'success' }}
+      working-directory: ./chart-verifier
+      env:
+          KUBECONFIG: /tmp/ci-kubeconfig
+      run: |
+          ve1/bin/sa-for-chart-testing --delete charts-${{ github.event.number }}
