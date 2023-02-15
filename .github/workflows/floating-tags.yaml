@@ -1,0 +1,47 @@
+name: Manage Container Floating Tags
+# This workflow 
+on:
+  push: # includes merges
+    branches:
+      - "ghactions"
+  pull_request:
+    branches:
+      - "ghactions"
+env:
+  IMAGE_NAME: chart-verifier-actions-testing
+  TARGET_TAG: ghactions
+  DATA_DIR: ./containertags
+jobs:
+  move-floating-tag:
+    name: Confirm Digest Exists
+    runs-on: ubuntu-latest
+    outputs:
+      target_digest: ${{ steps.retrieve-digest.outputs.digest }}
+      target_image: ${{ steps.ensure-image.outputs.image }}
+    steps:
+    - uses: actions/checkout@v3
+    - name: Retrieve desired digest value from file
+      id: retrieve-digest
+      run: |
+        digest=$(cat ${{ env.DATA_DIR}}/${{ env.TARGET_TAG }})
+        test ! -z "${digest}"
+        echo digest="${digest}" >> $GITHUB_OUTPUT
+    - name: Ensure image is available in registry
+      id: ensure-image
+      run: |
+        image=${{ secrets.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.retrieve-digest.outputs.digest }}
+        skopeo inspect docker://"${image}"
+        echo "image=${image}" >> $GITHUB_OUTPUT
+    - name: Log in to Quay.io
+      uses: redhat-actions/podman-login@v1
+      with:
+        username: ${{ secrets.REGISTRY_USER }}
+        password: ${{ secrets.REGISTRY_PASSWORD }}
+        registry: ${{ secrets.IMAGE_REGISTRY }}
+    - name: Move Tag
+      if: ${{ github.event.push }}
+      id: move-floating-tag
+      run: |
+        imageReference=${{ secrets.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}
+        skopeo copy --preserve-digests docker://${imageReference}@${{ steps.retrieve-digest.outputs.digest }} docker://${imageReference}@${{ env.TARGET_TAG }}
+  
