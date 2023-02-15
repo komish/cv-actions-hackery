@@ -39,6 +39,7 @@ jobs:
       id: move-floating-tag
       run: |
         imageReference=${{ secrets.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}
+        podman pull ${imageReference}@${{ steps.retrieve-digest.outputs.digest }}
         podman tag ${imageReference}@${{ steps.retrieve-digest.outputs.digest }} docker://${imageReference}@${{ env.TARGET_TAG }}
         podman push ${imageReference}@${{ env.TARGET_TAG }}
     ## TODO: Create an issue if the tag move fails asking a human to resolve. 
