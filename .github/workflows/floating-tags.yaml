@@ -39,8 +39,9 @@ jobs:
       id: move-floating-tag
       run: |
         imageReference=${{ secrets.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}
-        podman tag ${imageReference}@${{ steps.retrieve-digest.outputs.digest }} docker://${imageReference}@${{ env.TARGET_TAG }}
-        podman push ${imageReference}@${{ env.TARGET_TAG }}
+        podman pull ${imageReference}@${{ steps.retrieve-digest.outputs.digest }}
+        podman tag ${imageReference}@${{ steps.retrieve-digest.outputs.digest }} ${imageReference}:${{ env.TARGET_TAG }}
+        podman push ${imageReference}:${{ env.TARGET_TAG }}
     ## TODO: Create an issue if the tag move fails asking a human to resolve. 
     ## Aside from intermittence, the other reason a move can fail is the digest
     ## disappears before the tag is linked.
