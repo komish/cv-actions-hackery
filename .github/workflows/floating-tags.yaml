@@ -36,7 +36,6 @@ jobs:
         password: ${{ secrets.REGISTRY_PASSWORD }}
         registry: ${{ secrets.IMAGE_REGISTRY }}
     - name: Move Tag # TODO: Only do this if we don't already have the floating tag linked.
-      if: github.event.push
       id: move-floating-tag
       run: |
         imageReference=${{ secrets.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}
