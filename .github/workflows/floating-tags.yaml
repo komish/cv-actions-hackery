@@ -1,47 +1,39 @@
 name: Floating Tags
-# This workflow 
+# This workflow manages floating tags for this project. When digests
+# change in ./containertags/* files, the associated tag is synced
+# in the container registry.
 on:
   push: # Includes when PRs get merged to the branches.
     branches:
       - "ghactions"
-env:
-  IMAGE_NAME: chart-verifier-actions-testing
-  TARGET_TAG: ghactions
-  DATA_DIR: ./containertags
 jobs:
-  move-floating-tag:
-    name: Link Floating Tags to Digests
-    runs-on: ubuntu-latest
-    outputs:
-      target_digest: ${{ steps.retrieve-digest.outputs.digest }}
-      target_image: ${{ steps.ensure-image.outputs.image }}
-    steps:
-    - uses: actions/checkout@v3
-    - name: Retrieve desired digest value from file
-      id: retrieve-digest
-      run: |
-        digest=$(cat ${{ env.DATA_DIR}}/${{ env.TARGET_TAG }})
-        test ! -z "${digest}"
-        echo digest="${digest}" >> $GITHUB_OUTPUT
-    - name: Ensure image is available in registry
-      id: ensure-image
-      run: |
-        image=${{ secrets.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.retrieve-digest.outputs.digest }}
-        skopeo inspect docker://"${image}"
-        echo "image=${image}" >> $GITHUB_OUTPUT
-    - name: Log in to Quay.io
-      uses: redhat-actions/podman-login@v1
-      with:
-        username: ${{ secrets.REGISTRY_USER }}
-        password: ${{ secrets.REGISTRY_PASSWORD }}
-        registry: ${{ secrets.IMAGE_REGISTRY }}
-    - name: Move Tag # TODO: Only do this if we don't already have the floating tag linked.
-      id: move-floating-tag
-      run: |
-        imageReference=${{ secrets.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}
-        podman pull ${imageReference}@${{ steps.retrieve-digest.outputs.digest }}
-        podman tag ${imageReference}@${{ steps.retrieve-digest.outputs.digest }} ${imageReference}:${{ env.TARGET_TAG }}
-        podman push ${imageReference}:${{ env.TARGET_TAG }}
-    ## TODO: Create an issue if the tag move fails asking a human to resolve. 
-    ## Aside from intermittence, the other reason a move can fail is the digest
-    ## disappears before the tag is linked.
+  move-tag-ghactions:
+    name: "Update Tag: ghactions"
+    uses: ./.github/workflows/manage-floating-tag.yaml
+    with:
+      tag: ghactions
+    secrets:
+      REGISTRY_USER: ${{ secrets.REGISTRY_USER }}
+      REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+      IMAGE_REGISTRY: ${{ secrets.IMAGE_REGISTRY }}
+  
+
+  move-tag-dev:
+    name: "Update Tag: dev"
+    uses: ./.github/workflows/manage-floating-tag.yaml
+    with:
+      tag: dev
+    secrets:
+      REGISTRY_USER: ${{ secrets.REGISTRY_USER }}
+      REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+      IMAGE_REGISTRY: ${{ secrets.IMAGE_REGISTRY }}
+
+  move-tag-test:
+    name: "Update Tag: test"
+    uses: ./.github/workflows/manage-floating-tag.yaml
+    with:
+      tag: test
+    secrets:
+      REGISTRY_USER: ${{ secrets.REGISTRY_USER }}
+      REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+      IMAGE_REGISTRY: ${{ secrets.IMAGE_REGISTRY }}
